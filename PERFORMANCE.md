@@ -41,3 +41,20 @@ Number of times we saw nothing on the queue: 1078856
 Total time: 47923788019 ns for 400000000 items, which is 119.809 ns/item
 
 
+New approach:
+
+nrThreads=1
+Number of times we saw nothing on the queue: 23290724
+Total time: 2335143809 ns for 100000000 items, which is 23.3514 ns/item
+
+nrThreads=2
+Number of times we saw nothing on the queue: 343411653
+Total time: 6840607732 ns for 200000000 items, which is 34.203 ns/item
+
+nrThreads=3
+Number of times we saw nothing on the queue: 508340738
+Total time: 11507385337 ns for 300000000 items, which is 38.358 ns/item
+
+nrThreads=4
+Number of times we saw nothing on the queue: 638301893
+Total time: 14112349303 ns for 400000000 items, which is 35.2809 ns/item
