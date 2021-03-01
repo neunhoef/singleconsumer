@@ -9,7 +9,22 @@
 #include <thread>
 #include <vector>
 
-//#define MEINE 1
+#define MEINE 1
+
+inline void cpu_relax() {
+// TODO use <boost/fiber/detail/cpu_relax.hpp> when available (>1.65.0?)
+#if defined(__i386) || defined(_M_IX86) || defined(__x86_64__) || \
+    defined(_M_X64)
+#if defined _WIN32
+  YieldProcessor();
+#else
+  asm volatile("pause" ::: "memory");
+#endif
+#else
+  static constexpr std::chrono::microseconds us0{0};
+  std::this_thread::sleep_for(us0);
+#endif
+}
 
 #ifndef MEINE
 #include <atomic_queue/atomic_queue.h>
@@ -61,7 +76,7 @@ class LockFreeQueue {
     }
     tail = _tail.fetch_add(StepPrime, std::memory_order_relaxed);
     std::size_t pos = tail & CapMask;
-    _ring[pos].store(p, std::memory_order_relaxed);
+    _ring[pos].store(p, std::memory_order_release);
     return true;
   }
 
@@ -72,7 +87,7 @@ class LockFreeQueue {
       return false;
     }
     _head += StepPrime;
-    if (++_headCount == 256) {
+    if (++_headCount == 1024) {
       _headCount = 0;
       _headPub.store(_head, std::memory_order_relaxed);
     }
@@ -96,16 +111,17 @@ typedef atomic_queue::AtomicQueue<uint64_t*, 1024000, nullptr, true, true, false
 
 std::atomic<bool> go{false};
 std::atomic<std::size_t> running{0};
+std::chrono::steady_clock::time_point startTime;
 std::chrono::steady_clock::time_point endTime;
 
 void producer(Queue* queue, uint64_t nr) {
   while (go.load(std::memory_order_relaxed) == false) {
-    std::this_thread::yield();
+    cpu_relax();
   }
   uint64_t* val = new uint64_t[nr];
   for (uint64_t i = 0; i < nr; ++i) {
     while (!queue->try_push(val)) {
-      //std::this_thread::yield();
+      cpu_relax();
     }
     ++val;
   }
@@ -117,8 +133,10 @@ void producer(Queue* queue, uint64_t nr) {
 
 void consumer(Queue* queue, uint64_t nr) {
   while (go.load(std::memory_order_relaxed) == false) {
-    std::this_thread::yield();
+    cpu_relax();
   }
+  std::this_thread::sleep_for(std::chrono::microseconds(100));
+  startTime = std::chrono::steady_clock::now();
   uint64_t* val = nullptr;
   uint64_t counter = 0;
   for (uint64_t i = 0; i < nr; ++i) {
@@ -128,7 +146,7 @@ void consumer(Queue* queue, uint64_t nr) {
         break;
       }
       ++counter;
-      //std::this_thread::yield();
+      cpu_relax();
     }
   }
   std::size_t done = running.fetch_sub(1, std::memory_order_relaxed);
@@ -180,7 +198,6 @@ int main(int argc, char* argv[]) {
   }
 
   running = nrThreads + 1;
-  auto startTime = std::chrono::steady_clock::now();
   go = true;
   for (std::size_t i = 0; i < nrThreads; ++i) {
     prod[i]->join();
