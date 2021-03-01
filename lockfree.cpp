@@ -9,7 +9,10 @@
 #include <thread>
 #include <vector>
 
-#define MEINE 1
+#include "futex.h"
+
+#define SINGLECONSUMER 1
+#define WITHSLEEP 1
 
 inline void cpu_relax() {
 // TODO use <boost/fiber/detail/cpu_relax.hpp> when available (>1.65.0?)
@@ -26,34 +29,30 @@ inline void cpu_relax() {
 #endif
 }
 
-#ifndef MEINE
+#ifndef SINGLECONSUMER
 #include <atomic_queue/atomic_queue.h>
 #endif
 
 template<typename T, std::size_t capacitylog2>
-class LockFreeQueue {
+class alignas(64) LockFreeQueue {
   static constexpr std::size_t const Capacity = 1ul << capacitylog2;
   static constexpr std::size_t const CapMask = Capacity - 1;
   static constexpr std::size_t const StepPrime = 11;  // 11*8 > 64 bytes
   static constexpr std::size_t const Limit = StepPrime * Capacity * 7 / 8;
 
-  struct Entry {
-    std::atomic<T*> e;
-    char padding[56];
-  };
-
   std::atomic<T*>* _ring;
-  char padding[56];
-  std::size_t _head;   // we have _head <= _tail at all times
-  std::size_t _headCount;
-  char padding2[48];
+  alignas(64) std::size_t _head;   // we have _head <= _tail at all times
+  alignas(64) std::size_t _headCount;
   std::atomic<std::size_t> _headPub;
-  char padding3[56];
-  std::atomic<std::size_t> _tail;   // _head == _tail is empty
+  alignas(64) std::atomic<std::size_t> _tail;   // _head == _tail is empty
+  alignas(64) Futex _sleeping;
+ public:
+  uint64_t _nrSleeps;
 
  public:
 
-  LockFreeQueue() : _head(0), _headCount(0), _headPub(0), _tail(0)  {
+  LockFreeQueue()
+    : _head(0), _headCount(0), _headPub(0), _tail(0), _sleeping(0), _nrSleeps(0) {
     _ring = new std::atomic<T*>[Capacity];
     for (std::size_t i = 0; i < Capacity; ++i) {
       _ring[i].store(nullptr, std::memory_order_relaxed);
@@ -80,6 +79,16 @@ class LockFreeQueue {
     return true;
   }
 
+  bool try_push_with_wakeup(T* p) {
+    if (!try_push(p)) {
+      return false;
+    }
+    wakeup();
+    return true;
+  }
+
+  // The following methods may only be called by a single thread!
+ 
   bool try_pop(T*& result) {
     std::size_t pos = _head & CapMask;
     T* res = _ring[pos].load(std::memory_order_acquire);
@@ -96,21 +105,66 @@ class LockFreeQueue {
     return true;
   }
 
+  static constexpr int const SpinLimit = 10000;
+
+  void pop_or_sleep(T*& result) {
+    std::size_t pos = _head & CapMask;
+    T* res;
+    int count = SpinLimit;
+    while (true) {
+      res = _ring[pos].load(std::memory_order_acquire);
+      if (res != nullptr) {
+        break;
+      }
+      if (--count > 0) {
+        cpu_relax();
+        continue;
+      }
+      count = SpinLimit;
+      ++_nrSleeps;
+      // Now try to go to sleep:
+      _sleeping.value().store(1, std::memory_order_seq_cst);
+      res = _ring[pos].load(std::memory_order_seq_cst);
+      if (res != nullptr) {
+        _sleeping.value().store(0, std::memory_order_relaxed);
+        break;
+      }
+      _sleeping.wait(1);
+      _sleeping.value().store(0, std::memory_order_seq_cst);
+    }
+    _head += StepPrime;
+    if (++_headCount == 1024) {
+      _headCount = 0;
+      _headPub.store(_head, std::memory_order_relaxed);
+    }
+    _ring[pos].store(nullptr, std::memory_order_relaxed);
+    result = res;
+  }
+
   bool empty() const {
     std::size_t pos = _head & CapMask;
     T* res = _ring[pos].load(std::memory_order_acquire);
     return res == nullptr;
   }
+
+ private:
+  void wakeup() {
+    // To be called by a different thread than the consumer
+    if (_sleeping.value().load(std::memory_order_seq_cst) == 1) {
+      _sleeping.value().store(0, std::memory_order_seq_cst);
+      _sleeping.notifyOne();
+    }
+  }
+
 };
 
-#ifdef MEINE
+#ifdef SINGLECONSUMER
 typedef LockFreeQueue<uint64_t, 20> Queue;
 #else
 typedef atomic_queue::AtomicQueue<uint64_t*, 1024000, nullptr, true, true, false, false> Queue;
 #endif
 
 std::atomic<bool> go{false};
-std::atomic<std::size_t> running{0};
 std::chrono::steady_clock::time_point startTime;
 std::chrono::steady_clock::time_point endTime;
 
@@ -120,14 +174,16 @@ void producer(Queue* queue, uint64_t nr) {
   }
   uint64_t* val = new uint64_t[nr];
   for (uint64_t i = 0; i < nr; ++i) {
+#ifndef WITHSLEEP
     while (!queue->try_push(val)) {
       cpu_relax();
     }
+#else
+    while (!queue->try_push_with_wakeup(val)) {
+      cpu_relax();
+    }
+#endif
     ++val;
-  }
-  std::size_t done = running.fetch_sub(1, std::memory_order_relaxed);
-  if (done == 1) {
-    endTime = std::chrono::steady_clock::now();
   }
 }
 
@@ -140,6 +196,7 @@ void consumer(Queue* queue, uint64_t nr) {
   uint64_t* val = nullptr;
   uint64_t counter = 0;
   for (uint64_t i = 0; i < nr; ++i) {
+#ifndef WITHSLEEP
     for (;;) {
       bool gotit = queue->try_pop(val);
       if (gotit) {
@@ -148,11 +205,11 @@ void consumer(Queue* queue, uint64_t nr) {
       ++counter;
       cpu_relax();
     }
+#else
+    queue->pop_or_sleep(val);
+#endif
   }
-  std::size_t done = running.fetch_sub(1, std::memory_order_relaxed);
-  if (done == 1) {
-    endTime = std::chrono::steady_clock::now();
-  }
+  endTime = std::chrono::steady_clock::now();
   std::cout << "Number of times we saw nothing on the queue: " << counter
     << std::endl;
 }
@@ -197,7 +254,6 @@ int main(int argc, char* argv[]) {
     prod.push_back(new std::thread(&producer, q, nrOps));
   }
 
-  running = nrThreads + 1;
   go = true;
   for (std::size_t i = 0; i < nrThreads; ++i) {
     prod[i]->join();
@@ -209,5 +265,6 @@ int main(int argc, char* argv[]) {
   std::cout << "Total time: " <<  nanoseconds << " ns for "
     << nrThreads * nrOps << " items, which is " << (double) nanoseconds / (nrOps * nrThreads)
     << " ns/item" << std::endl;
+  std::cout << "Number of sleeps: " << q->_nrSleeps << std::endl;
   return 0;
 }
