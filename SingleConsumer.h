@@ -58,6 +58,8 @@ class alignas(64) LockFreeQueue {
     return _nrSleeps;
   }
 
+  // The following methods can be called from multiple threads:
+ 
   bool try_push(T* p) {
     // First check that there is some space in the queue:
     std::size_t tail = _tail.load(std::memory_order_relaxed);
@@ -68,6 +70,7 @@ class alignas(64) LockFreeQueue {
     tail = _tail.fetch_add(StepPrime, std::memory_order_relaxed);
     std::size_t pos = tail & CapMask;
     _ring[pos].store(p, std::memory_order_release);
+      // (1) This synchronizes with (2) in try_pop.
     return true;
   }
 
@@ -84,6 +87,7 @@ class alignas(64) LockFreeQueue {
   bool try_pop(T*& result) {
     std::size_t pos = _head & CapMask;
     T* res = _ring[pos].load(std::memory_order_acquire);
+      // (2) This synchronizes with (1) in try_push.
     if (res == nullptr) {
       return false;
     }
@@ -117,6 +121,14 @@ class alignas(64) LockFreeQueue {
       }
       _sleeping.wait(1);
       _sleeping.value().store(0, std::memory_order_seq_cst);
+      // Proof that there is no sleeping barber between pop_or_sleep
+      // and try_push_with_wakeup:
+      // We only have to proof that the consumer cannot sleep despite
+      // the fact that there is something on the queue.
+      // If the consumer has gone to sleep, then the futex value was
+      // one went it dozed off. That is, the read of _sleeping in
+      // wakeup must have happened after that. But then wakeup calls
+      // notifyOne and we are good.
     }
   }
 
