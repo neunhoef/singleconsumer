@@ -1,60 +1,19 @@
-MEINE:
+n threads push pointers to a queue of size 1048576
+1 thread pops them as fast as it can
+All times in nanoseconds per operation, time is computed by measuring
+the total time in the consumer and dividing by the number of pops,
+so this is throughput.
 
-nrThreads=1
-Number of times we saw nothing on the queue: 52715623
-Total time: 9126436881 ns for 100000000 items, which is 91.2644 ns/item
-Stats: 142.494 100000000
-
-nrThreads=2
-Number of times we saw nothing on the queue: 42624
-Total time: 19981300807 ns for 200000000 items, which is 99.9065 ns/item
-Stats: 104086 1000369482
-
-nrThreads=3
-Number of times we saw nothing on the queue: 61794
-Total time: 38039488429 ns for 300000000 items, which is 126.798 ns/item
-Stats: 62672.2 2502453551
-
-nrThreads=4
-Number of times we saw nothing on the queue: 75995
-Total time: 69958457624 ns for 400000000 items, which is 174.896 ns/item
-Stats: 42299.9 4952133432
-
-
-AtomicQueue:
-
-nrThreads=1
-Number of times we saw nothing on the queue: 9675850
-Total time: 6061942912 ns for 100000000 items, which is 60.6194 ns/item
-neunhoef@tux ~/c/lockfree>
-
-nrThreads=2
-Number of times we saw nothing on the queue: 3448017
-Total time: 13548052485 ns for 200000000 items, which is 67.7403 ns/item
-
-nrThreads=3
-Number of times we saw nothing on the queue: 59790
-Total time: 28085393905 ns for 300000000 items, which is 93.618 ns/item
-
-nrThreads=4
-Number of times we saw nothing on the queue: 1078856
-Total time: 47923788019 ns for 400000000 items, which is 119.809 ns/item
-
-
-New approach:
-
-nrThreads=1
-Number of times we saw nothing on the queue: 23290724
-Total time: 2335143809 ns for 100000000 items, which is 23.3514 ns/item
-
-nrThreads=2
-Number of times we saw nothing on the queue: 343411653
-Total time: 6840607732 ns for 200000000 items, which is 34.203 ns/item
-
-nrThreads=3
-Number of times we saw nothing on the queue: 508340738
-Total time: 11507385337 ns for 300000000 items, which is 38.358 ns/item
-
-nrThreads=4
-Number of times we saw nothing on the queue: 638301893
-Total time: 14112349303 ns for 400000000 items, which is 35.2809 ns/item
+NrThreads:                      1       2       4       8       16
+======================================================================
+SingleConsumer, gcc             22      37      29      27      31
+SingleConsumer, clang12         21      37      33      28      33
+SingleConsumer, clang11         21      38      35      28      39
+======================================================================
+AtomicQueue, gcc                67      69      115     134     313
+AtomicQueue, clang12            55      68      79      125     281
+AtomicQueue, clang11            55      68      106     132     247
+======================================================================
+BoostLockFree, gcc              138     152     196     197     198
+BoostLockFree, clang12          144     152     203     200     196
+BoostLockFree, clang11          137     149     210     202     204
