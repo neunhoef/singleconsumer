@@ -12,7 +12,7 @@
 #include "futex.h"
 
 #define SINGLECONSUMER 1
-//#define WITHSLEEP 1
+#define WITHSLEEP 1
 
 inline void cpu_relax() {
 // TODO use <boost/fiber/detail/cpu_relax.hpp> when available (>1.65.0?)
@@ -41,11 +41,15 @@ class alignas(64) LockFreeQueue {
   static constexpr std::size_t const Limit = StepPrime * Capacity * 7 / 8;
 
   std::atomic<T*>* _ring;
-  alignas(64) std::size_t _head;   // we have _head <= _tail at all times
-  alignas(64) std::size_t _headCount;
+  char padding[56];
+  std::size_t _head;   // we have _head <= _tail at all times
+  char padding2[56];
+  std::size_t _headCount;
   std::atomic<std::size_t> _headPub;
-  alignas(64) std::atomic<std::size_t> _tail;   // _head == _tail is empty
-  alignas(64) Futex _sleeping;
+  char padding3[48];
+  std::atomic<std::size_t> _tail;   // _head == _tail is empty
+  char padding4[56];
+  Futex _sleeping;
  public:
   uint64_t _nrSleeps;
 
