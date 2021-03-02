@@ -20,6 +20,7 @@ bench:
 	build/lockfree 1 30000000 | tee -a benchresults.txt
 	build/lockfree 2 30000000 | tee -a benchresults.txt
 	build/lockfree 4 30000000 | tee -a benchresults.txt
+	build/lockfree 7 30000000 | tee -a benchresults.txt
 	build/lockfree 8 30000000 | tee -a benchresults.txt
 	build/lockfree 16 30000000 | tee -a benchresults.txt
 

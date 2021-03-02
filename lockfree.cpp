@@ -11,14 +11,14 @@
 
 // Define exactly one of the following three:
 
-//#define SINGLECONSUMER 1
+#define SINGLECONSUMER 1
 //#define ATOMICQUEUE 1
-#define BOOSTLOCKFREE 1
+//#define BOOSTLOCKFREE 1
 
 #include "SingleConsumer.h"
 
 #ifdef SINGLECONSUMER
-typedef LockFreeQueue<uint64_t, 20> Queue;
+typedef LockFreeQueue<uint64_t, 20, 64> Queue;
 #endif
 
 #ifdef ATOMICQUEUE
@@ -47,8 +47,10 @@ void producer(Queue* queue, uint64_t nr) {
     }
 #endif
 #ifdef SINGLECONSUMER
-    while (!queue->try_push_with_wakeup(val)) {
-      cpu_relax();
+    while (!queue->try_push(val)) {
+      // If the queue is full, it will take quite some time to get to
+      // low water again (768000*20 ns = 1.5 milliseconds!)
+      std::this_thread::sleep_for(std::chrono::microseconds(10));
     }
 #endif
 #ifdef BOOSTLOCKFREE
