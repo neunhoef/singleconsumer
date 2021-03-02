@@ -12,7 +12,7 @@
 #include "futex.h"
 
 #define SINGLECONSUMER 1
-#define WITHSLEEP 1
+//#define WITHSLEEP 1
 
 inline void cpu_relax() {
 // TODO use <boost/fiber/detail/cpu_relax.hpp> when available (>1.65.0?)
@@ -108,37 +108,24 @@ class alignas(64) LockFreeQueue {
   static constexpr int const SpinLimit = 10000;
 
   void pop_or_sleep(T*& result) {
-    std::size_t pos = _head & CapMask;
-    T* res;
-    int count = SpinLimit;
     while (true) {
-      res = _ring[pos].load(std::memory_order_acquire);
-      if (res != nullptr) {
-        break;
-      }
-      if (--count > 0) {
+      for (int i = 0; i < SpinLimit; ++i) {
+        if (try_pop(result)) {
+          return;
+        }
         cpu_relax();
-        continue;
       }
-      count = SpinLimit;
+
       ++_nrSleeps;
       // Now try to go to sleep:
       _sleeping.value().store(1, std::memory_order_seq_cst);
-      res = _ring[pos].load(std::memory_order_seq_cst);
-      if (res != nullptr) {
+      if (try_pop(result)) {
         _sleeping.value().store(0, std::memory_order_relaxed);
-        break;
+        return;
       }
       _sleeping.wait(1);
       _sleeping.value().store(0, std::memory_order_seq_cst);
     }
-    _head += StepPrime;
-    if (++_headCount == 1024) {
-      _headCount = 0;
-      _headPub.store(_head, std::memory_order_relaxed);
-    }
-    _ring[pos].store(nullptr, std::memory_order_relaxed);
-    result = res;
   }
 
   bool empty() const {
