@@ -1,3 +1,9 @@
+debug: clean
+	echo >> benchresults.txt
+	echo debug >> benchresults.txt
+	mkdir build
+	cd build ; cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=-march="native -O0" .. ; cmake --build . -- -j
+
 gcc: clean
 	echo >> benchresults.txt
 	echo gcc >> benchresults.txt
