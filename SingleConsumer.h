@@ -60,7 +60,7 @@ class alignas(64) LockFreeQueue {
     std::atomic<uint32_t> _outputPublished;
 
   // This is the cache line for the producers:
-  //alignas(64)
+  alignas(64)
     Futex _input; // _input is always stored shifted left one bit,
                   // low bit is sleeping flag, _output == _input means
                   // that the queue is empty
