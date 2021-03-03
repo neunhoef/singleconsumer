@@ -18,3 +18,14 @@ target_include_directories(lockfree
     PUBLIC
     ${CMAKE_SOURCE_DIR}/atomic_queue/include
 )
+
+add_executable(lockfreelatency
+  lockfreelatency.cpp
+)
+target_link_libraries(lockfreelatency
+  ${CMAKE_THREAD_LIBS_INIT}
+)
+target_include_directories(lockfreelatency
+    PUBLIC
+    ${CMAKE_SOURCE_DIR}/atomic_queue/include
+)

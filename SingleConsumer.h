@@ -149,6 +149,13 @@ class alignas(64) LockFreeQueue {
         if (try_pop(result)) {
           return;
         }
+#if 0
+        // This is slightly better for latency but not so good for
+        // throughput:
+        for (int j = 0; j < 100; ++j) {
+          cpu_relax();
+        }
+#endif
         std::this_thread::sleep_for(std::chrono::microseconds(1));
       }
 
