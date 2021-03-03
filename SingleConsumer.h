@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <thread>
 #include "futex.h"
 
 inline void cpu_relax() {
@@ -148,7 +149,7 @@ class alignas(64) LockFreeQueue {
         if (try_pop(result)) {
           return;
         }
-        cpu_relax();
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
       }
 
       ++_nrSleeps;
