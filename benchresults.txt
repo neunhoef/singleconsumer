@@ -174,3 +174,81 @@ Total time: 48544399855 ns for 240000000 items, which is 202.268 ns/item
 nrThreads=16
 Number of times we saw nothing on the queue: 0
 Total time: 97775616334 ns for 480000000 items, which is 203.699 ns/item
+
+gcc
+nrThreads=1
+Number of times we saw nothing on the queue: 0
+Total time: 327609408 ns for 30000000 items, which is 10.9203 ns/item
+Number of sleeps: 0
+nrThreads=2
+Number of times we saw nothing on the queue: 0
+Total time: 1662800637 ns for 60000000 items, which is 27.7133 ns/item
+Number of sleeps: 0
+nrThreads=4
+Number of times we saw nothing on the queue: 0
+Total time: 3175279494 ns for 120000000 items, which is 26.4607 ns/item
+Number of sleeps: 0
+nrThreads=7
+Number of times we saw nothing on the queue: 0
+Total time: 5031488222 ns for 210000000 items, which is 23.9595 ns/item
+Number of sleeps: 0
+nrThreads=8
+Number of times we saw nothing on the queue: 0
+Total time: 5353269513 ns for 240000000 items, which is 22.3053 ns/item
+Number of sleeps: 0
+nrThreads=16
+Number of times we saw nothing on the queue: 0
+Total time: 11563037796 ns for 480000000 items, which is 24.0897 ns/item
+Number of sleeps: 0
+
+clang12
+nrThreads=1
+Number of times we saw nothing on the queue: 0
+Total time: 320036393 ns for 30000000 items, which is 10.6679 ns/item
+Number of sleeps: 0
+nrThreads=2
+Number of times we saw nothing on the queue: 0
+Total time: 1680896554 ns for 60000000 items, which is 28.0149 ns/item
+Number of sleeps: 0
+nrThreads=4
+Number of times we saw nothing on the queue: 0
+Total time: 3172347746 ns for 120000000 items, which is 26.4362 ns/item
+Number of sleeps: 0
+nrThreads=7
+Number of times we saw nothing on the queue: 0
+Total time: 4963445125 ns for 210000000 items, which is 23.6355 ns/item
+Number of sleeps: 0
+nrThreads=8
+Number of times we saw nothing on the queue: 0
+Total time: 5087353447 ns for 240000000 items, which is 21.1973 ns/item
+Number of sleeps: 0
+nrThreads=16
+Number of times we saw nothing on the queue: 0
+Total time: 10589809854 ns for 480000000 items, which is 22.0621 ns/item
+Number of sleeps: 0
+
+clang11
+nrThreads=1
+Number of times we saw nothing on the queue: 0
+Total time: 311425917 ns for 30000000 items, which is 10.3809 ns/item
+Number of sleeps: 0
+nrThreads=2
+Number of times we saw nothing on the queue: 0
+Total time: 1616553858 ns for 60000000 items, which is 26.9426 ns/item
+Number of sleeps: 0
+nrThreads=4
+Number of times we saw nothing on the queue: 0
+Total time: 3220943480 ns for 120000000 items, which is 26.8412 ns/item
+Number of sleeps: 0
+nrThreads=7
+Number of times we saw nothing on the queue: 0
+Total time: 5121676487 ns for 210000000 items, which is 24.3889 ns/item
+Number of sleeps: 0
+nrThreads=8
+Number of times we saw nothing on the queue: 0
+Total time: 5234611155 ns for 240000000 items, which is 21.8109 ns/item
+Number of sleeps: 0
+nrThreads=16
+Number of times we saw nothing on the queue: 0
+Total time: 10547434460 ns for 480000000 items, which is 21.9738 ns/item
+Number of sleeps: 0
