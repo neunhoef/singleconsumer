@@ -29,3 +29,14 @@ target_include_directories(lockfreelatency
     PUBLIC
     ${CMAKE_SOURCE_DIR}/atomic_queue/include
 )
+
+add_executable(condvarlatency
+  condvarlatency.cpp
+)
+target_link_libraries(condvarlatency
+  ${CMAKE_THREAD_LIBS_INIT}
+)
+target_include_directories(condvarlatency
+    PUBLIC
+    ${CMAKE_SOURCE_DIR}/atomic_queue/include
+)
