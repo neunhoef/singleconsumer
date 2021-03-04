@@ -21,3 +21,20 @@ BoostLockFree, clang11          137     149     210     ?      202     204
 SingleConsumer, gcc             11      27      26      24      22      24
 SingleConsumer, clang12         11      28      26      24      21      22
 SingleConsumer, clang11         10      27      27      24      22      22
+
+
+
+Latency:
+
+> build/condvarlatency
+nrThreads=1
+Latencies: median=45262 90%ile=57594 99%ile=71078 smallest=3775
+largest 10: 64176 65004 65291 65301 65306 67954 68019 69105 71078 90800
+
+> build/lockfreelatency
+nrThreads=1
+Latencies: median=44760 90%ile=60226 99%ile=74059 smallest=3223
+largest 10: 65700 67697 68304 68469 70259 70358 71845 72933 74059 88654
+Number of sleeps: 200
+
+

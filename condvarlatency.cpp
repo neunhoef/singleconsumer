@@ -29,14 +29,41 @@ std::mutex mutex;
 std::condition_variable condvar;
 TwoTimes tt;
 
+uint64_t total = 0;
+
+void busywait(uint64_t ns) {
+  auto start = std::chrono::steady_clock::now();
+  uint64_t l = 10000;
+  while (true) {
+    auto now = std::chrono::steady_clock::now();
+    if (std::chrono::nanoseconds(now - start).count() >= ns) {
+      return;
+    }
+    uint64_t x = 0;
+    for (uint64_t i = 0; i < l; ++i) {
+      x += i * i * i;
+    }
+    total += x;
+    l = l + 1700;
+    if (l > 20000) {
+      l -= 10000;
+    }
+  }
+}
+
 void producer(uint64_t nr) {
   while (go.load(std::memory_order_relaxed) == false) {
     cpu_relax();
   }
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   std::vector<uint64_t> times;
   times.reserve(nr);
+  uint64_t l = 100000000;
   for (uint64_t i = 0; i < nr; ++i) {
+    busywait(l);
+    l += 123456;
+    if (l > 150000000) {
+      l -= 50000000;
+    }
     {
       std::lock_guard<std::mutex> guard(mutex);
       tt.start = std::chrono::steady_clock::now();
@@ -48,7 +75,6 @@ void producer(uint64_t nr) {
     }
     tt.end = std::chrono::steady_clock::now();
     times.push_back(std::chrono::nanoseconds(tt.end - tt.start).count());
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
   std::sort(times.begin(), times.end());
   {
