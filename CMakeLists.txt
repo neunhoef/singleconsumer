@@ -8,6 +8,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Threads REQUIRED)
 
+include_directories(
+  ${CMAKE_SOURCE_DIR}/xenium
+)
+
 add_executable(lockfree
   lockfree.cpp
 )

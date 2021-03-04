@@ -11,9 +11,10 @@
 
 // Define exactly one of the following three:
 
-#define SINGLECONSUMER 1
+//#define SINGLECONSUMER 1
 //#define ATOMICQUEUE 1
 //#define BOOSTLOCKFREE 1
+#define NIKOLAEV 1
 
 #include "SingleConsumer.h"
 
@@ -29,6 +30,11 @@ typedef atomic_queue::AtomicQueue<uint64_t*, 1048576, nullptr, true, true, false
 #ifdef BOOSTLOCKFREE
 #include <boost/lockfree/queue.hpp>
 typedef boost::lockfree::queue<uint64_t*> Queue;
+#endif
+
+#ifdef NIKOLAEV
+#include <xenium/nikolaev_bounded_queue.hpp>
+typedef xenium::nikolaev_bounded_queue<uint64_t*> Queue;
 #endif
 
 std::atomic<bool> go{false};
@@ -55,6 +61,11 @@ void producer(Queue* queue, uint64_t nr) {
 #endif
 #ifdef BOOSTLOCKFREE
     while (!queue->push(val)) {
+      cpu_relax();
+    }
+#endif
+#ifdef NIKOLAEV
+    while (!queue->try_push(val)) {
       cpu_relax();
     }
 #endif
@@ -94,6 +105,16 @@ void consumer(Queue* queue, uint64_t nr) {
       cpu_relax();
     }
 #endif
+#ifdef NIKOLAEV
+    for (;;) {
+      bool gotit = queue->try_pop(val);
+      if (gotit) {
+        break;
+      }
+      ++counter;
+      cpu_relax();
+    }
+#endif
   }
   endTime = std::chrono::steady_clock::now();
   std::cout << "Number of times we saw nothing on the queue: " << counter
@@ -114,7 +135,11 @@ int main(int argc, char* argv[]) {
 #ifdef BOOSTLOCKFREE
   Queue* q = new Queue(1048576);
 #else
+#ifdef NIKOLAEV
+  Queue* q = new Queue(1048576);
+#else
   Queue* q = new Queue();
+#endif
 #endif
   std::thread cons{&consumer, q, nrThreads * nrOps};
   std::vector<std::thread*> prod;
