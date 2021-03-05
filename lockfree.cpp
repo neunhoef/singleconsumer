@@ -11,10 +11,10 @@
 
 // Define exactly one of the following three:
 
-//#define SINGLECONSUMER 1
+#define SINGLECONSUMER 1
 //#define ATOMICQUEUE 1
 //#define BOOSTLOCKFREE 1
-#define NIKOLAEV 1
+//#define NIKOLAEV 1
 
 #include "SingleConsumer.h"
 
