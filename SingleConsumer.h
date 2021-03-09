@@ -41,7 +41,7 @@ class alignas(64) LockFreeQueue {
 
   // This is the cache line for everybody to read only:
   alignas(64)
-    std::atomic<T>* _ring;   // the actual ring buffer
+    std::atomic<T*>* _ring;   // the actual ring buffer
 
   // This is the cache line for the one consumer to work with:
   alignas(64)
@@ -71,7 +71,7 @@ class alignas(64) LockFreeQueue {
   LockFreeQueue()
     : _output(0), _outputCount(0), _nrSleeps(0), _outputPublished(0),
       _input(0) {
-    _ring = new std::atomic<T>[Capacity];
+    _ring = new std::atomic<T*>[Capacity];
     for (std::size_t i = 0; i < Capacity; ++i) {
       _ring[i].store(nullptr, std::memory_order_relaxed);
     }
@@ -90,7 +90,7 @@ class alignas(64) LockFreeQueue {
 
   // The following methods can be called from multiple threads:
  
-  bool try_push(T p) {
+  bool try_push(T* p) {
     // First check that there is some space in the queue:
     uint32_t input = static_cast<uint32_t>(
         _input.value().load(std::memory_order_relaxed));
@@ -122,10 +122,10 @@ class alignas(64) LockFreeQueue {
 
   // The following methods may only be called by a single thread!
  
-  bool try_pop(T& result) {
+  bool try_pop(T*& result) {
     std::size_t pos
       = (static_cast<std::size_t>(_output >> 1) * StepNumber) & CapMask;
-    T res = _ring[pos].load(std::memory_order_acquire);
+    T* res = _ring[pos].load(std::memory_order_acquire);
       // (2) This synchronizes with (1) in try_push.
     if (res == nullptr) {
       return false;
@@ -143,7 +143,7 @@ class alignas(64) LockFreeQueue {
 
   static constexpr int const SpinLimit = 1000;
 
-  void pop_or_sleep(T& result) {
+  void pop_or_sleep(T*& result) {
     while (true) {
       for (int i = 0; i < SpinLimit; ++i) {
         if (try_pop(result)) {
@@ -182,7 +182,7 @@ class alignas(64) LockFreeQueue {
 
   bool empty() const {
     std::size_t pos = _output & CapMask;
-    T res = _ring[pos].load(std::memory_order_acquire);
+    T* res = _ring[pos].load(std::memory_order_acquire);
     return res == nullptr;
   }
 

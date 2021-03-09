@@ -21,7 +21,7 @@ struct TwoTimes {
   std::atomic<bool> done;
 };
 
-typedef LockFreeQueue<TwoTimes*, 20, 64> Queue;
+typedef LockFreeQueue<TwoTimes, 20, 64> Queue;
 
 std::atomic<bool> go{false};
 std::mutex mutex;

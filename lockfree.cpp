@@ -19,7 +19,7 @@
 #include "SingleConsumer.h"
 
 #ifdef SINGLECONSUMER
-typedef LockFreeQueue<uint64_t*, 20, 64> Queue;
+typedef LockFreeQueue<uint64_t, 20, 64> Queue;
 #endif
 
 #ifdef ATOMICQUEUE
