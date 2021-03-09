@@ -2,12 +2,14 @@
 
 // This is a fast single consumer, multiple producer queue for pointers.
 
+#pragma once
+
 #include <atomic>
 #include <cstdint>
 #include <thread>
 #include "futex.h"
 
-inline void cpu_relax() {
+static inline void cpu_relax() {
 // TODO use <boost/fiber/detail/cpu_relax.hpp> when available (>1.65.0?)
 #if defined(__i386) || defined(_M_IX86) || defined(__x86_64__) || \
     defined(_M_X64)
@@ -195,3 +197,4 @@ class alignas(64) LockFreeQueue {
     }
   }
 };
+
