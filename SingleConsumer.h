@@ -79,7 +79,7 @@ class alignas(64) LockFreeQueue {
 
   ~LockFreeQueue() {
     for (std::size_t i = 0; i < Capacity; ++i) {
-      delete _ring[i].e;
+      delete _ring[i];
     }
     delete[] _ring;
   }
