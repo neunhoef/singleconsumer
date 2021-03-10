@@ -183,7 +183,8 @@ class alignas(64) LockFreeQueue {
   }
 
   bool empty() const {
-    std::size_t pos = _output & CapMask;
+    std::size_t pos
+      = (static_cast<std::size_t>(_output >> 1) * StepNumber) & CapMask;
     T* res = _ring[pos].load(std::memory_order_acquire);
     return res == nullptr;
   }
